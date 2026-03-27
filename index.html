@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Caminho da Luz ✨</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #0b0b1a, #000);
+    font-family: 'Georgia', serif;
+}
+
+/* CANVAS */
+canvas {
+    display: block;
+}
+
+/* CARTA */
+#mensagem {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    width: 80%;
+    max-width: 500px;
+    height: 60vh;
+
+    background: rgba(255, 255, 255, 0.08); /* transparente */
+    backdrop-filter: blur(10px);
+
+    color: #ffffff;
+
+    padding: 25px;
+    border-radius: 12px;
+
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+
+    text-align: justify;
+    font-size: 16px;
+    line-height: 1.8;
+
+    overflow-y: auto; /* SCROLL */
+    display: none;
+}
+
+/* SCROLL BONITO */
+#mensagem::-webkit-scrollbar {
+    width: 6px;
+}
+#mensagem::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 10px;
+}
+
+/* PARÁGRAFOS */
+#mensagem p {
+    margin-bottom: 14px;
+    text-indent: 20px;
+}
+
+/* VERSÍCULO */
+.versiculo {
+    text-align: center;
+    font-style: italic;
+    margin-top: 20px;
+}
+
+/* FINAL */
+.final {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 20px;
+}
+</style>
+
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="mensagem"></div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let player = { x: canvas.width/2, y: canvas.height/2 };
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+/* ESTRELAS */
+let stars = [];
+for(let i=0;i<100;i++){
+    stars.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        size: Math.random()*2
+    });
+}
+
+/* LUZES */
+let lights = [];
+for(let i=0;i<12;i++){
+    lights.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        active: true
+    });
+}
+
+/* PARTÍCULAS */
+let particles = [];
+let jogoFinalizado = false;
+
+function update(){
+    if(keys["ArrowUp"] || keys["w"]) player.y -= 3;
+    if(keys["ArrowDown"] || keys["s"]) player.y += 3;
+    if(keys["ArrowLeft"] || keys["a"]) player.x -= 3;
+    if(keys["ArrowRight"] || keys["d"]) player.x += 3;
+
+    lights.forEach(light => {
+        if(light.active){
+            let dx = player.x - light.x;
+            let dy = player.y - light.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+
+            if(dist < 15){
+                light.active = false;
+
+                for(let i=0;i<10;i++){
+                    particles.push({
+                        x: light.x,
+                        y: light.y,
+                        vx: (Math.random()-0.5)*2,
+                        vy: (Math.random()-0.5)*2,
+                        life: 50
+                    });
+                }
+            }
+        }
+    });
+
+    particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+    });
+
+    particles = particles.filter(p => p.life > 0);
+
+    if(!jogoFinalizado && lights.every(l => !l.active)){
+        jogoFinalizado = true;
+        finalizar();
+    }
+}
+
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "white";
+    stars.forEach(s=>{
+        ctx.globalAlpha = Math.random();
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+    });
+    ctx.globalAlpha = 1;
+
+    lights.forEach(l=>{
+        if(l.active){
+            let glow = ctx.createRadialGradient(l.x,l.y,0,l.x,l.y,20);
+            glow.addColorStop(0,"gold");
+            glow.addColorStop(1,"transparent");
+
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(l.x,l.y,20,0,Math.PI*2);
+            ctx.fill();
+        }
+    });
+
+    particles.forEach(p=>{
+        ctx.fillStyle = "gold";
+        ctx.fillRect(p.x,p.y,2,2);
+    });
+
+    let glow = ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,30);
+    glow.addColorStop(0,"#00f7ff");
+    glow.addColorStop(1,"transparent");
+
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(player.x,player.y,30,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#00f7ff";
+    ctx.beginPath();
+    ctx.arc(player.x,player.y,5,0,Math.PI*2);
+    ctx.fill();
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+/* CARTA */
+function mostrarMensagemFinal() {
+    const el = document.getElementById("mensagem");
+
+    el.innerHTML = `
+        <p>Entre tantas coisas boas que Deus criou, existem aquelas que carregam algo diferente... uma luz que não se explica, apenas se sente.</p>
+
+        <p>E, de alguma forma, você é assim.</p>
+
+        <p>Assim como o brilho das estrelas no céu reflete uma das mais perfeitas criações dEle, existe um brilho em você que reflete algo ainda mais profundo: a presença pura do Espírito Santo.</p>
+
+        <p>Que você continue brilhando por onde passar, com essa leveza, com essa bondade, com essa identidade única que Deus escreveu pessoalmente em você.</p>
+
+        <p>E quando tentarem te desanimar, não se preocupe... porque, com toda certeza, Deus olha pra você com alegria.</p>
+
+        <p>Assim como Ester foi colocada no lugar certo, no momento certo, você também está sendo direcionada por Deus a estar exatamente onde Ele deseja te usar.</p>
+
+        <p>Existe um propósito em quem você é, em cada detalhe seu, em cada caminho que você percorre. Nada é por acaso.</p>
+
+        <p>Deus está te conduzindo para viver algo maior, para ser instrumento dEle de forma extraordinária, assim como tantas mulheres de fé que marcaram a história pela sua coragem, sabedoria e presença.</p>
+
+        <p><em>“Quem sabe se não foi para um momento como este que você chegou até aqui?”</em><br>(Ester 4:14)</p>
+
+        <p>Mesmo quando você não percebe, Deus continua escrevendo sua história, com intenção, com amor e com propósito.</p>
+
+        <p><em>“Força e dignidade são os seus vestidos...”</em><br>(Provérbios 31:25)</p>
+
+        <p class="final">Continue sendo exatamente quem você é.<br>Porque isso… já é incrível.</p>
+
+    `;
+
+    el.style.display = "block";
+    tocarMusica();
+}
+
+/* MÚSICA */
+function tocarMusica() {
+    const audio = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b0a1f.mp3?filename=beautiful-piano-ambient-110624.mp3");
+    audio.volume = 0.4;
+    audio.play().catch(()=>{});
+}
+
+/* FINAL */
+function finalizar() {
+    setTimeout(() => {
+        mostrarMensagemFinal();
+    }, 1000);
+}
+
+loop();
+</script>
+
+</body>
+</html>
