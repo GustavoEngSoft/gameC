@@ -3,17 +3,18 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Caminho da Luz ✨</title>
 
 <style>
 body {
     margin: 0;
     overflow: hidden;
+    touch-action: none;
     background: radial-gradient(circle at center, #0b0b1a, #000);
     font-family: 'Georgia', serif;
 }
 
-/* CANVAS */
 canvas {
     display: block;
 }
@@ -29,7 +30,7 @@ canvas {
     max-width: 500px;
     height: 60vh;
 
-    background: rgba(255, 255, 255, 0.08); /* transparente */
+    background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
 
     color: #ffffff;
@@ -43,37 +44,8 @@ canvas {
     font-size: 16px;
     line-height: 1.8;
 
-    overflow-y: auto; /* SCROLL */
+    overflow-y: auto;
     display: none;
-}
-
-/* SCROLL BONITO */
-#mensagem::-webkit-scrollbar {
-    width: 6px;
-}
-#mensagem::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.3);
-    border-radius: 10px;
-}
-
-/* PARÁGRAFOS */
-#mensagem p {
-    margin-bottom: 14px;
-    text-indent: 20px;
-}
-
-/* VERSÍCULO */
-.versiculo {
-    text-align: center;
-    font-style: italic;
-    margin-top: 20px;
-}
-
-/* FINAL */
-.final {
-    text-align: center;
-    font-weight: bold;
-    margin-top: 20px;
 }
 </style>
 
@@ -89,49 +61,82 @@ canvas {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+/* RESPONSIVO */
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
 
-let player = { x: canvas.width/2, y: canvas.height/2 };
-let keys = {};
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => keys[e.key] = false);
+/* PLAYER */
+let player = {
+    x: canvas.width / 2,
+    y: canvas.height / 2
+};
+
+/* ALVO */
+let target = null;
 
 /* ESTRELAS */
-let stars = [];
-for(let i=0;i<100;i++){
-    stars.push({
-        x: Math.random()*canvas.width,
-        y: Math.random()*canvas.height,
-        size: Math.random()*2
+let stars = Array.from({length:100}, () => ({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    size: Math.random()*2
+}));
+
+/* LUZES */
+let lights = Array.from({length:12}, () => ({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    active: true
+}));
+
+/* CLIQUE / TOQUE */
+function detectarClique(x, y){
+    lights.forEach(light => {
+        if(light.active){
+            let dist = Math.hypot(x - light.x, y - light.y);
+            if(dist < 25){
+                target = light;
+            }
+        }
     });
 }
 
-/* LUZES */
-let lights = [];
-for(let i=0;i<12;i++){
-    lights.push({
-        x: Math.random()*canvas.width,
-        y: Math.random()*canvas.height,
-        active: true
-    });
-}
+canvas.addEventListener("click", (e)=>{
+    detectarClique(e.clientX, e.clientY);
+});
+
+canvas.addEventListener("touchstart", (e)=>{
+    const t = e.touches[0];
+    detectarClique(t.clientX, t.clientY);
+});
 
 /* PARTÍCULAS */
 let particles = [];
 let jogoFinalizado = false;
 
 function update(){
-    if(keys["ArrowUp"] || keys["w"]) player.y -= 3;
-    if(keys["ArrowDown"] || keys["s"]) player.y += 3;
-    if(keys["ArrowLeft"] || keys["a"]) player.x -= 3;
-    if(keys["ArrowRight"] || keys["d"]) player.x += 3;
 
+    /* MOVIMENTO ATÉ A ESTRELA */
+    if(target){
+        let dx = target.x - player.x;
+        let dy = target.y - player.y;
+        let dist = Math.hypot(dx, dy);
+
+        if(dist > 2){
+            player.x += dx * 0.05;
+            player.y += dy * 0.05;
+        } else {
+            target = null;
+        }
+    }
+
+    /* COLISÃO */
     lights.forEach(light => {
         if(light.active){
-            let dx = player.x - light.x;
-            let dy = player.y - light.y;
-            let dist = Math.sqrt(dx*dx + dy*dy);
+            let dist = Math.hypot(player.x - light.x, player.y - light.y);
 
             if(dist < 15){
                 light.active = false;
@@ -166,6 +171,7 @@ function update(){
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
+    /* ESTRELAS */
     ctx.fillStyle = "white";
     stars.forEach(s=>{
         ctx.globalAlpha = Math.random();
@@ -173,6 +179,7 @@ function draw(){
     });
     ctx.globalAlpha = 1;
 
+    /* LUZES */
     lights.forEach(l=>{
         if(l.active){
             let glow = ctx.createRadialGradient(l.x,l.y,0,l.x,l.y,20);
@@ -186,11 +193,13 @@ function draw(){
         }
     });
 
+    /* PARTÍCULAS */
     particles.forEach(p=>{
         ctx.fillStyle = "gold";
         ctx.fillRect(p.x,p.y,2,2);
     });
 
+    /* PLAYER */
     let glow = ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,30);
     glow.addColorStop(0,"#00f7ff");
     glow.addColorStop(1,"transparent");
@@ -231,34 +240,21 @@ function mostrarMensagemFinal() {
 
         <p>Existe um propósito em quem você é, em cada detalhe seu, em cada caminho que você percorre. Nada é por acaso.</p>
 
-        <p>Deus está te conduzindo para viver algo maior, para ser instrumento dEle de forma extraordinária, assim como tantas mulheres de fé que marcaram a história pela sua coragem, sabedoria e presença.</p>
+        <p>Deus está te conduzindo para viver algo maior, para ser instrumento dEle de forma extraordinária.</p>
 
         <p><em>“Quem sabe se não foi para um momento como este que você chegou até aqui?”</em><br>(Ester 4:14)</p>
-
-        <p>Mesmo quando você não percebe, Deus continua escrevendo sua história, com intenção, com amor e com propósito.</p>
 
         <p><em>“Força e dignidade são os seus vestidos...”</em><br>(Provérbios 31:25)</p>
 
         <p class="final">Continue sendo exatamente quem você é.<br>Porque isso… já é incrível.</p>
-
     `;
 
     el.style.display = "block";
-    tocarMusica();
-}
-
-/* MÚSICA */
-function tocarMusica() {
-    const audio = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b0a1f.mp3?filename=beautiful-piano-ambient-110624.mp3");
-    audio.volume = 0.4;
-    audio.play().catch(()=>{});
 }
 
 /* FINAL */
-function finalizar() {
-    setTimeout(() => {
-        mostrarMensagemFinal();
-    }, 1000);
+function finalizar(){
+    setTimeout(mostrarMensagemFinal, 1000);
 }
 
 loop();
